@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+
+# Also implemented: cases where hash characters are aligned vertically
+# or horizontally
+
+input_file   = ARGV[0]
+output_file  = ARGV[1]
+output       = []
+top_hash_x   = nil
+
+# HELPERS
+# =================================
+
+def get_hash_x(line)
+  # Two hashes exist on the same line, outputs array
+  if line.count("#") == 2
+    # Return indexes for all hash characters as array
+    (0...line.length).find_all { |i| line[i] == '#' }
+  # No hash or one hash on line, return index
+  else
+    line.index('#')
+  end
+end
+
+def line_has_hash?(line)
+  line.include?('#')
+end
+
+def hashes_same_line?(line)
+  get_hash_x(line).kind_of?(Array)
+end
+
+def bottom_hash_found?(line, top_hash_x)
+  top_hash_x && line_has_hash?(line)
+end
+
+# Determine horizontal line start and stop points
+def h_line_start_stop(top_hash_x, bottom_hash_x)
+  if top_hash_x < bottom_hash_x
+    [top_hash_x, (bottom_hash_x - 1)]
+  else
+    [(bottom_hash_x + 1), top_hash_x]
+  end
+end
+
+# Rewrite line with asterisks inserted
+def asteriskify(line, start, stop)
+  astk_count = (stop - start) + 1
+  line[start..stop] = ("*" * astk_count)
+  line
+end
+
+# INGESTION, CORE LOGIC
+# =================================
+
+File.open(input_file, "r") do |f|
+  f.each_line.with_index do |line, idx|
+
+    if hashes_same_line?(line)
+      astk_start, astk_stop  = get_hash_x(line)
+      line = asteriskify(line, astk_start + 1, astk_stop - 1)
+
+    elsif bottom_hash_found?(line, top_hash_x)
+      bottom_hash_x      = get_hash_x(line)
+      h_line_range       = h_line_start_stop(top_hash_x, bottom_hash_x)
+      line               = asteriskify(line, *h_line_range)
+      top_hash_x         = nil
+
+    # Top hash previously found, write line with
+    # '*' in same x position to form vertical line
+    elsif top_hash_x
+    line = asteriskify(line, top_hash_x, top_hash_x)
+
+    # Top hash found, store x position
+    elsif line_has_hash?(line)
+      top_hash_x = get_hash_x(line)
+    end
+
+    output << line
+  end
+end
+
+# WRITE OUTPUT ARRAY TO OUTPUT FILE
+# =================================
+
+File.open(output_file, 'w') do |file|
+  file.puts output
+end
+
+# For debugging locally, print output in terminal
+# puts output
